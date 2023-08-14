@@ -45,4 +45,11 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Note: 
 ##### This script is intended for educational and reference purposes. Always ensure you have proper backups and perform testing before migrating critical data.
 
+
+## execution using docker
+#### Build the Docker Image:
+docker build -t SimpleMigrateMySqlDB
+
+#### Run the Docker Container
 For questions or support, please contact kavingwa@icloud.com
+docker run -it --rm SimpleMigrateMySqlDB.py
