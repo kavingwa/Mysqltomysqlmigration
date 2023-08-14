@@ -15,7 +15,9 @@ This script facilitates the migration of data and schema from a source MySQL dat
 
 Install the required libraries using:
 
-```bash
+# -------- EXECUTION USING RAW PYTHON -----------
+
+bash
 pip install mysql-connector-python tqdm
 
 
@@ -26,8 +28,8 @@ Open the script in a text editor.
 Modify the source_conn and dest_conn dictionaries to match your source and destination database configurations.
 Run the script using the following command:
 
-```bash
-python your_script_name.py
+bash
+python SimpleMigrateMysqlDB.py
 
 ## Configuration
 
@@ -46,10 +48,10 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ##### This script is intended for educational and reference purposes. Always ensure you have proper backups and perform testing before migrating critical data.
 
 
-## execution using docker
+# -------- EXECUTION USING DOCKER -----------
 #### Build the Docker Image:
 docker build -t SimpleMigrateMySqlDB
 
 #### Run the Docker Container
 For questions or support, please contact kavingwa@icloud.com
-docker run -it --rm SimpleMigrateMySqlDB.py
+docker run -it --rm SimpleMigrateMysqlDB.py
