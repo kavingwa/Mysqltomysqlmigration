@@ -1,14 +1,16 @@
 import mysql.connector
 import re
 from tqdm import tqdm
+from configs import dest_config as dest_conn, source_config as source_conn
 
 class SimpleMigrateMysqlDB:
+    
     def __init__(self, source_conn, dest_conn):
         """
         Initialize a SimpleMigrateMysqlDB instance.
 
         Parameters:
-        source_conn (dict): The source db config.
+        source_conn (dict): The source db coonfig.
         dest_conn (dict): The destination db config.
         """
         self.source_conn = source_conn
@@ -42,6 +44,7 @@ class SimpleMigrateMysqlDB:
 
         return create_table_sql
 
+
     def get_tables_and_views(self, source_conn):
         """
         Generate DDL statements for tables and views from the source database.
@@ -64,7 +67,7 @@ class SimpleMigrateMysqlDB:
         """
         connection = mysql.connector.connect(**self.source_conn)
         cursor = connection.cursor()
-        cursor.execute(f"SELECT TABLE_NAME, TABLE_TYPE FROM information_schema.TABLES WHERE TABLE_SCHEMA = '{self.source_conn['database']}'")
+        cursor.execute(f"SELECT TABLE_NAME, TABLE_TYPE FROM information_schema.TABLES WHERE TABLE_SCHEMA = '{self.dest_conn['database']}'")
         tables_and_views = {row[0]: row[1] for row in cursor}
 
         views, tabs, table_ddl, views_ddl = [], [], [], []
@@ -94,6 +97,7 @@ class SimpleMigrateMysqlDB:
 
         Parameters:
         create_statements (list): A list of DDL statements for creating tables.
+        target_database_config (dict): A dictionary containing the connection details to the target database.
 
         Returns:
         None
@@ -133,6 +137,7 @@ class SimpleMigrateMysqlDB:
                 cursor.close()
                 connection.close()
                 
+                
     def migrate_table(self, tabs):
         """
         Migrate data from the source to the destination database, handling duplicates using REPLACE INTO.
@@ -142,30 +147,47 @@ class SimpleMigrateMysqlDB:
         to handle duplicates. After successful migration, the function closes the cursors.
 
         Parameters:
-        tabs (list): A list of table names to migrate.
+        source_conn (mysql.connector.connection): Connection to the source database.
+        dest_conn (mysql.connector.connection): Connection to the destination database.
 
         Returns:
         None
         """
         try:
-            source_connection = mysql.connector.connect(**self.source_conn)
-            source_cursor = source_connection.cursor(buffered=True)
-            
-            dest_connection = mysql.connector.connect(**self.dest_conn)
-            dest_cursor = dest_connection.cursor(buffered=True)
+            # List of tables to copy
+            tables_to_copy = tabs
 
             # Batch size for insertion
-            batch_size = 5000
+            batch_size = 1000
 
             # Copy tables
             for table_name in tqdm(tabs, desc="Migrate data from source to destination"):
                 try:
+                    source_connection = mysql.connector.connect(**self.source_conn)
+                    source_cursor = source_connection.cursor(buffered=True)
+
+                    dest_connection = mysql.connector.connect(**self.dest_conn)
+                    dest_cursor = dest_connection.cursor(buffered=True)
+            
                     print(f"Working on table {table_name} ------")
                     source_cursor.execute(f"SELECT * FROM {table_name}")
+                    truncate_query = f"TRUNCATE TABLE {table_name}"
+                    dest_cursor.execute(truncate_query)
+                    print(f"Truncate table {table_name} Successful------")
 
                     total_rows = 0  # Counter for total rows copied
 
                     while True:
+                        
+                        # Check if the source connection is still alive
+                        if not source_connection.is_connected():
+                            print("Source connection is not alive. Reconnecting...")
+                            source_connection.reconnect()
+
+                        # Check if the destination connection is still alive
+                        if not dest_connection.is_connected():
+                            print("Destination connection is not alive. Reconnecting...")
+                            dest_connection.reconnect()
                         rows = source_cursor.fetchmany(batch_size)
                         if not rows:
                             break
@@ -177,38 +199,26 @@ class SimpleMigrateMysqlDB:
 
                         total_rows += len(rows)  # Increment total rows counter
 
-                    print(f"Total rows copied for {table_name}: {total_rows}")
+                        print(f"Total rows copied for {table_name}: {total_rows}")
+                        
+                        
+                    
+                    # Close cursors
+                    source_cursor.close()
+                    dest_cursor.close()
+
+                    # Close connections
+                    source_connection.close()
+                    dest_connection.close()
 
                 except Exception as e:
                     print(e)
                     pass
 
-            # Close cursors
-            source_cursor.close()
-            dest_cursor.close()
-                                   
-            # Close connections
-            source_connection.close()
-            dest_connection.close()
-
         except Exception as e:
             print(e)
 
 if __name__ == "__main__":
-    source_conn = {
-        "host": "source_host",
-        "user": "source_user",
-        "password": "source_password",
-        "database": "source_database"
-    }
-    
-    dest_conn = {
-        "host": "destination_host",
-        "user": "destination_user",
-        "password": "destination_password",
-        "database": "destination_database"
-    }
-
     cls = SimpleMigrateMysqlDB(source_conn, dest_conn)
 
     tables_and_views, views, tabs, table_ddl, views_ddl = cls.get_tables_and_views(source_conn)
