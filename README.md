@@ -2,6 +2,8 @@
 
 This script facilitates the migration of data and schema from a source MySQL database to a destination MySQL database. It uses the MySQL Connector library to establish connections, retrieve DDL statements, and migrate data while handling duplicates.
 
+```For questions or support, please contact kavingwa@icloud.com```
+
 ## Features
 
 - Retrieves CREATE TABLE and CREATE VIEW statements from the source database.
@@ -53,5 +55,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 docker build -t SimpleMigrateMySqlDB
 
 #### Run the Docker Container
-For questions or support, please contact kavingwa@icloud.com
 docker run -it --rm SimpleMigrateMysqlDB.py
